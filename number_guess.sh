@@ -47,3 +47,13 @@ do
 done
 
 echo "You guessed it in $tries tries. The secret number was $secret_number. Nice job!"
+
+
+# Actualizar el número de juegos jugados
+update_games=$($PSQL "UPDATE players SET games_played = games_played + 1 WHERE name = '$username'")
+
+# Actualizar el mejor juego si el número de intentos es menor
+if [[ $best_game -eq 0 || $tries -lt $best_game ]]
+then
+  update_best_game=$($PSQL "UPDATE players SET best_game = $tries WHERE name = '$username'")
+fi
