@@ -7,21 +7,17 @@ echo "Enter your username:"
 read username
 
 # Verificar si el usuario existe
-user_info=$($PSQL "SELECT * FROM players WHERE name = '$username'")
+user_info=$($PSQL "SELECT user_id, games_played, best_game FROM users WHERE username = '$username'")
 
 if [[ -z $user_info ]]
 then
   echo "Welcome, $username! It looks like this is your first time here."
-  # Inicializar el nuevo jugador en la base de datos
-  insert_player=$($PSQL "INSERT INTO players (name) VALUES ('$username')")
+  insert_user=$($PSQL "INSERT INTO users (username) VALUES ('$username')")
 else
-  # Mostrar información del usuario
   games_played=$(echo $user_info | cut -d '|' -f 2)
   best_game=$(echo $user_info | cut -d '|' -f 3)
   echo "Welcome back, $username! You have played $games_played games, and your best game took $best_game guesses."
 fi
-
-# Generación del número secreto y validación de la adivinanza
 
 secret_number=$(( RANDOM % 1000 + 1 ))
 
@@ -32,12 +28,14 @@ tries=0
 while [[ $guess -ne $secret_number ]]
 do
   read guess
-  tries=$((tries + 1))
-
   if ! [[ $guess =~ ^[0-9]+$ ]]
   then
     echo "That is not an integer, guess again:"
-  elif [[ $guess -gt $secret_number ]]
+    continue
+  fi
+  tries=$((tries + 1))
+
+  if [[ $guess -gt $secret_number ]]
   then
     echo "It's lower than that, guess again:"
   elif [[ $guess -lt $secret_number ]]
@@ -48,26 +46,12 @@ done
 
 echo "You guessed it in $tries tries. The secret number was $secret_number. Nice job!"
 
-
 # Actualizar el número de juegos jugados
-update_games=$($PSQL "UPDATE players SET games_played = games_played + 1 WHERE name = '$username'")
+update_games=$($PSQL "UPDATE users SET games_played = games_played + 1 WHERE username = '$username'")
 
-# Actualizar el mejor juego si el número de intentos es menor
-if [[ $best_game -eq 0 || $tries -lt $best_game ]]
+# Actualizar el mejor juego si es necesario
+best_game_now=$($PSQL "SELECT best_game FROM users WHERE username = '$username'")
+if [[ -z $best_game_now || $tries -lt $best_game_now ]]
 then
-  update_best_game=$($PSQL "UPDATE players SET best_game = $tries WHERE name = '$username'")
-fi
-
-user_info=$($PSQL "SELECT * FROM players WHERE name = '$username'")
-
-if [[ -z $user_info ]]
-then
-  echo "Welcome, $username! It looks like this is your first time here."
-  # Inicializar el nuevo jugador en la base de datos
-  insert_player=$($PSQL "INSERT INTO players (name) VALUES ('$username')")
-else
-  # Mostrar información del usuario
-  games_played=$(echo $user_info | cut -d '|' -f 2)
-  best_game=$(echo $user_info | cut -d '|' -f 3)
-  echo "Welcome back, $username! You have played $games_played games, and your best game took $best_game guesses."
+  update_best_game=$($PSQL "UPDATE users SET best_game = $tries WHERE username = '$username'")
 fi
