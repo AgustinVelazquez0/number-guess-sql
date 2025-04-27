@@ -7,50 +7,50 @@ echo "Enter your username:"
 read username
 
 # Verificar si el usuario existe
-USER_INFO=$($PSQL "SELECT * FROM players WHERE name = '$username'")
+user_info=$($PSQL "SELECT * FROM players WHERE name = '$username'")
 
-if [[ -z $USER_INFO ]]
+if [[ -z $user_info ]]
 then
   echo "Welcome, $username! It looks like this is your first time here."
   # Inicializar el nuevo jugador en la base de datos
-  INSERT_PLAYER=$($PSQL "INSERT INTO players (name) VALUES ('$username')")
+  insert_player=$($PSQL "INSERT INTO players (name) VALUES ('$username')")
 else
   # Mostrar información del usuario
-  GAMES_PLAYED=$(echo $USER_INFO | cut -d '|' -f 2)
-  BEST_GAME=$(echo $USER_INFO | cut -d '|' -f 3)
-  echo "Welcome back, $username! You have played $GAMES_PLAYED games, and your best game took $BEST_GAME guesses."
+  games_played=$(echo $user_info | cut -d '|' -f 2)
+  best_game=$(echo $user_info | cut -d '|' -f 3)
+  echo "Welcome back, $username! You have played $games_played games, and your best game took $best_game guesses."
 fi
 
-SECRET_NUMBER=$(( RANDOM % 1000 + 1 ))
+secret_number=$(( RANDOM % 1000 + 1 ))
 
 echo "Guess the secret number between 1 and 1000:"
-GUESS=0
-TRIES=0
+guess=0
+tries=0
 
-while [[ $GUESS -ne $SECRET_NUMBER ]]
+while [[ $guess -ne $secret_number ]]
 do
-  read GUESS
-  TRIES=$((TRIES + 1))
+  read guess
+  tries=$((tries + 1))
 
-  if ! [[ $GUESS =~ ^[0-9]+$ ]]
+  if ! [[ $guess =~ ^[0-9]+$ ]]
   then
     echo "That is not an integer, guess again:"
-  elif [[ $GUESS -gt $SECRET_NUMBER ]]
+  elif [[ $guess -gt $secret_number ]]
   then
     echo "It's lower than that, guess again:"
-  elif [[ $GUESS -lt $SECRET_NUMBER ]]
+  elif [[ $guess -lt $secret_number ]]
   then
     echo "It's higher than that, guess again:"
   fi
 done
 
-echo "You guessed it in $TRIES tries. The secret number was $SECRET_NUMBER. Nice job!"
+echo "You guessed it in $tries tries. The secret number was $secret_number. Nice job!"
 
 # Actualizar el número de juegos jugados
-UPDATE_GAMES=$($PSQL "UPDATE players SET games_played = games_played + 1 WHERE name = '$username'")
+update_games=$($PSQL "UPDATE players SET games_played = games_played + 1 WHERE name = '$username'")
 
 # Actualizar el mejor juego si el número de intentos es menor
-if [[ $BEST_GAME -eq 0 || $TRIES -lt $BEST_GAME ]]
+if [[ $best_game -eq 0 || $tries -lt $best_game ]]
 then
-  UPDATE_BEST_GAME=$($PSQL "UPDATE players SET best_game = $TRIES WHERE name = '$username'")
+  update_best_game=$($PSQL "UPDATE players SET best_game = $tries WHERE name = '$username'")
 fi
